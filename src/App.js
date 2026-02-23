@@ -1,3 +1,4 @@
+import { fetchMetalPricesLive } from "./metals";
 import { fetchPokemonPrices } from "./tcggo";
 import { fetchStockPrices } from "./finnhub";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -275,13 +276,14 @@ export default function App() {
     try {
       // 1. Fetch free API prices (crypto + metals)
       const freePrices = await fetchAllPrices(holdings);
+      const metalPricesLive = await fetchMetalPricesLive();
       const stockPrices = await fetchStockPrices(holdings);
       const pokemonPrices = await fetchPokemonPrices(holdings);
 
       // 2. Fetch AI prices for stocks + pokemon
       const aiPrices = await fetchAIPrices(holdings);
 
-      const allPrices = { ...freePrices, ...stockPrices, ...pokemonPrices, ...aiPrices };
+      const allPrices = { ...freePrices, ...metalPricesLive, ...stockPrices, ...pokemonPrices, ...aiPrices };
       savePriceCache(allPrices);
 
       setHoldings(prev => prev.map(h => {
