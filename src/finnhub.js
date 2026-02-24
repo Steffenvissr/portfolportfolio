@@ -1,6 +1,9 @@
 const FINNHUB_KEY = "d6e85v9r01qh94m36120d6e85v9r01qh94m3612g";
 
 const TICKER_MAP = {
+  "DN3.F": "DN3.F",
+  "Metaplanet": "DN3.F",
+  "MTPLF": "DN3.F",
   "AAPL": "AAPL",
   "NVDA": "NVDA",
   "ASML": "ASML.AS",
