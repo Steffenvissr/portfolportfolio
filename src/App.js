@@ -1,3 +1,4 @@
+import { cloudSave, cloudLoad } from "./cloudStorage";
 import { fetchMetalPricesLive } from "./metals";
 import { fetchPokemonPrices } from "./tcggo";
 import { fetchStockPrices } from "./finnhub";
@@ -223,21 +224,29 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
 
-  // Init: read user from URL hash
+  // Init: read user from URL hash + cloud
   useEffect(() => {
     const u = getUser();
     setUser(u);
     const saved = loadHoldings(u);
     if (saved) {
       setHoldings(saved);
-    } else if (u === "default") {
-      setShowSetup(true);
+      setInitialized(true);
     } else {
-      // New user from shared link — show empty state with samples option
-      setShowSetup(true);
+      setInitialized(false);
+      cloudLoad(u).then(function(cloud) {
+        if (cloud && cloud.length > 0) {
+          setHoldings(cloud);
+          saveHoldings(u, cloud);
+        } else if (u === "default") {
+          setShowSetup(true);
+        } else {
+          setShowSetup(true);
+        }
+        setInitialized(true);
+      });
+      return;
     }
-    setInitialized(true);
-
     const onHash = () => { const nu = getUser(); setUser(nu); const s = loadHoldings(nu); if (s) setHoldings(s); else setShowSetup(true); };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
@@ -245,7 +254,7 @@ export default function App() {
 
   // Save on change
   useEffect(() => {
-    if (initialized && holdings.length > 0) saveHoldings(user, holdings);
+    if (initialized && holdings.length > 0) { saveHoldings(user, holdings); cloudSave(user, holdings); }
   }, [holdings, user, initialized]);
 
   // Chart data
