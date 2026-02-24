@@ -1,53 +1,35 @@
 const JSONBIN_KEY = "$2a$10$WxyV1ltcWe62YGSkHMhgyujCkEa6UAdt56afNvbRLOqtg0LHKiNIC";
 const BASE = "https://api.jsonbin.io/v3";
-
-function getBinId(user) {
-  try { return localStorage.getItem("pfx_" + user + "_binId"); } catch { return null; }
-}
-function setBinId(user, id) {
-  try { localStorage.setItem("pfx_" + user + "_binId", id); } catch {}
-}
+const BIN_ID = "699d52ca43b1c97be998c11d";
 
 export async function cloudSave(user, holdings) {
   try {
-    let binId = getBinId(user);
-    if (!binId) {
-      const res = await fetch(BASE + "/b", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY, "X-Bin-Name": "pfx_" + user },
-        body: JSON.stringify({ user: user, holdings: holdings, t: Date.now() }),
-      });
-      const data = await res.json();
-      if (data.metadata && data.metadata.id) setBinId(user, data.metadata.id);
-      return;
-    }
-    await fetch(BASE + "/b/" + binId, {
+    const res = await fetch(BASE + "/b/" + BIN_ID, {
+      method: "GET",
+      headers: { "X-Master-Key": JSONBIN_KEY },
+    });
+    const existing = await res.json();
+    var allData = (existing.record && typeof existing.record === "object") ? existing.record : {};
+    allData[user] = { holdings: holdings, t: Date.now() };
+    await fetch(BASE + "/b/" + BIN_ID, {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
-      body: JSON.stringify({ user: user, holdings: holdings, t: Date.now() }),
+      body: JSON.stringify(allData),
     });
+    console.log("Cloud save OK for " + user);
   } catch (err) { console.error("Cloud save error:", err); }
 }
 
 export async function cloudLoad(user) {
   try {
-    var binId = getBinId(user);
-    if (!binId) {
-      var res = await fetch(BASE + "/c/uncategorized/bins", {
-        headers: { "X-Master-Key": JSONBIN_KEY },
-      });
-      var bins = await res.json();
-      if (Array.isArray(bins)) {
-        var match = bins.find(function(b) { return b.snippetMeta && b.snippetMeta.name === "pfx_" + user; });
-        if (match) { binId = match.id; setBinId(user, binId); }
-      }
-      if (!binId) return null;
-    }
-    var r = await fetch(BASE + "/b/" + binId + "/latest", {
+    const res = await fetch(BASE + "/b/" + BIN_ID + "/latest", {
       headers: { "X-Master-Key": JSONBIN_KEY },
     });
-    var data = await r.json();
-    if (data.record && data.record.holdings) return data.record.holdings;
+    const data = await res.json();
+    if (data.record && data.record[user] && data.record[user].holdings) {
+      console.log("Cloud load OK for " + user);
+      return data.record[user].holdings;
+    }
   } catch (err) { console.error("Cloud load error:", err); }
   return null;
 }
