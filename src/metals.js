@@ -1,38 +1,27 @@
-const GOLD_API_KEY = "goldapi-53o5smlznj5hw-io";
-const BASE = "https://www.goldapi.io/api";
-const HEADERS = {
-  "x-access-token": GOLD_API_KEY,
-  "Content-Type": "application/json",
-};
-
 export async function fetchMetalPricesLive() {
   const results = {};
-
   try {
-    const [goldRes, silverRes] = await Promise.all([
-      fetch(`${BASE}/XAU/EUR`, { headers: HEADERS }),
-      fetch(`${BASE}/XAG/EUR`, { headers: HEADERS }),
-    ]);
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=gram-silver,tether-gold&vs_currencies=eur&include_24hr_change=true"
+    );
+    const data = await res.json();
 
-    const gold = await goldRes.json();
-    const silver = await silverRes.json();
-
-    if (gold.price_gram_24k > 0) {
+    if (data["tether-gold"]?.eur > 0) {
+      const goldPerOz = data["tether-gold"].eur;
       results.XAU = {
-        price: gold.price_gram_24k,
-        change24h: gold.chp || 0,
+        price: goldPerOz / 31.1035,
+        change24h: data["tether-gold"].eur_24h_change || 0,
       };
     }
 
-    if (silver.price_gram_24k > 0) {
+    if (data["gram-silver"]?.eur > 0) {
       results.XAG = {
-        price: silver.price_gram_24k,
-        change24h: silver.chp || 0,
+        price: data["gram-silver"].eur,
+        change24h: data["gram-silver"].eur_24h_change || 0,
       };
     }
   } catch (err) {
-    console.error("GoldAPI error:", err);
+    console.error("Metal price error:", err);
   }
-
   return results;
 }
